@@ -3,138 +3,289 @@ Author: Emre Senyuva
 Description: AS3 ByteArray for Node.js
 */
 
-const struct = require("pystruct");
-function ByteArray(bytes = ''){
-    this.bytes = bytes;
-}
-module.exports = ByteArray;
-ByteArray.prototype = {
-    writeByte: function(value) {
-        this.bytes += struct.pack('!b', value);
-        return this;
-    },
+class bytestream {
+    constructor(buff) {
+        this.count = 0;
+        this.buf = [];
+        this.realArray = [];
+    		if (buff) {
+            if (buff instanceof Buffer) {
+                let arraybuf = [];
+                for (let c = 0; c < buff.length; c++) {
+                    arraybuf.push(buff[c]);
+                }
+                this.buf = arraybuf;
+                this.count = arraybuf.length;
+            } else {
+                this.buf = buff;
+                this.count = buff.length;
+            }
+            this.realArray = this.buff
+    		}
+    }
 
-    writeUnsignedByte: function(value) {
-        this.bytes += struct.pack('!B', value);
-        return this;
-    },
+    write(bytes) {
+      	if (isNaN(bytes)){
+      		for (let b = 0; b < bytes.length; b++) {
+  	    		this.buf.push(bytes[b]);
+  	    	}
+  	    	this.count += bytes.length;
+      	} else {
+      		this.buf.push(bytes);
+      		this.count++;
+      	}
+    }
 
-    writeShort: function(value) {
-        this.bytes += struct.pack('!h', value);
-        return this;
-    },
+    writeBoolean(value) {
+      	this.write(value ? 1 : 0);
+      	return this;
+    }
 
-    writeUnsignedShort: function(value) {
-        this.bytes += struct.pack('!H', value);
-        return this;
-    },
-
-    writeInt: function(value) {
-        this.bytes += struct.pack('!i', value);
-        return this;
-    },
-
-    writeUnsignedInt: function(value) {
-        this.bytes += struct.pack('!I', value);
-        return this;
-    },
-
-    writeBool: function(value) {
-        this.bytes += struct.pack('!?', value ? 1 : 0);
-        return this;
-    },
-
-    writeUTF: function(value) {
-        size = value.length;
-        this.writeShort(size);
-        this.write(value)
-        return this;
-    },
-
-    writeBytes: function(value) {
-        this.bytes += value;
-        return this;
-    },
-
-    write: function(value) {
-        this.bytes += value;
-    },
-
-    readByte: function() {
-        value = struct.unpack("!b", new Buffer(this.bytes.slice(0, 1)))[0];
-        this.bytes = this.bytes.slice(1);
-        return value;
-    },
-
-    readUnsignedByte: function() {
-        value = struct.unpack("!B", new Buffer(this.bytes.slice(0, 1)))[0];
-        this.bytes = this.bytes.slice(1);
-        return value;
-    },
-
-    readShort: function() {
-        value = struct.unpack("!h", new Buffer(this.bytes.slice(0, 2)))[0];
-        this.bytes = this.bytes.slice(2);
-        return value;
-    },
-
-    readUnsignedShort: function() {
-        value = struct.unpack("!H", new Buffer(this.bytes.slice(0, 2)))[0];
-        this.bytes = this.bytes.slice(2);
-        return value;
-    },
-
-    readInt: function() {
-        value = struct.unpack("!i", new Buffer(this.bytes.slice(0, 4)))[0];
-        this.bytes = this.bytes.slice(4);
-        return value;
-    },
-
-    readUnsignedInt: function() {
-        value = struct.unpack("!I", new Buffer(this.bytes.slice(0, 4)))[0];
-        this.bytes = this.bytes.slice(4);
-        return value;
-    },
-
-    readUnsignedInt: function() {
-        value = struct.unpack("!I", new Buffer(this.bytes.slice(0, 4)))[0];
-        this.bytes = this.bytes.slice(4);
-        return value;
-    },
-
-    readUTF: function() {
-        size = struct.unpack("!h", new Buffer(this.bytes.slice(0, 2)))[0];
-        value = this.bytes.slice(2, 2 + size);
-        this.bytes = this.bytes.slice(size + 2);
-        return value;
-    },
-
-    readUnsignedUTF: function() {
-        size = struct.unpack("!H", new Buffer(this.bytes.slice(0, 2)))[0];
-        value = this.bytes.slice(2, 2 + size);
-        this.bytes = this.bytes.slice(size + 2);
-        return value;
-    },
-
-    readBool: function() {
-        value = struct.unpack("!?", new Buffer(this.bytes.slice(0, 1)))[0];
-        this.bytes = this.bytes.slice(1);
-        if (value == 1) {
-            return true;
+    writeByte(number) {
+        if (-128 <= number <= 127) {
+            this.write(number);
         } else {
-            return false;
+            throw new UserException('Number: %i too large to convert', number);
         }
-    },
-    toByteArray: function() {
-        return this.bytes;
-    },
+      	return this;
+    }
 
-    getLength: function() {
-        return this.bytes.length;
-    },
+    writeUnsignedByte(number) {
+        if (0 <= number <= 255) {
+            this.write(number);
+        } else {
+            throw new UserException('Number: %i too large to convert', number);
+        }
+      	return this;
+    }
 
-    bytesAvailable: function() {
-        return this.bytes.length > 0;
-    },
+    writeShort(number) {
+        if (-32768 <= number <= 32767) {
+            this.write((number >>> 8) & 0xFF);
+          	this.write(number & 0xFF);
+        } else {
+            throw new UserException('Number: %i too large to convert', number);
+        }
+      	return this;
+    }
 
-}
+    writeUnsignedShort(number) {
+        if (0 <= number <= 65535) {
+            this.write((number >>> 8) & 0xFF);
+          	this.write(number & 0xFF);
+        } else {
+            throw new UserException('Number: %i too large to convert', number);
+        }
+      	return this;
+    }
+
+    writeInt(number) {
+        if (-2147483648 <= number <= 2147483647) {
+            this.write((number >>> 24) & 0xFF);
+            this.write((number >>> 16) & 0xFF);
+            this.write((number >>> 8) & 0xFF);
+            this.write(number & 0xFF);
+        } else {
+            throw new UserException('Number: %i too large to convert', number);
+        }
+      	return this;
+    }
+
+    writeUnsignedInt(number) {
+        if (0 <= number <= 4294967295) {
+            this.write((number >>> 24) & 0xFF);
+            this.write((number >>> 16) & 0xFF);
+            this.write((number >>> 8) & 0xFF);
+            this.write(number & 0xFF);
+        } else {
+            throw new UserException('Number: %i too large to convert', number);
+        }
+      	return this;
+    }
+
+    writeBytes(value) {
+      	this.write(value);
+      	return this;
+    }
+
+    writeUTFBytes(value) {
+        let strlen = value.length,
+      		  bytesCount = 0,
+          	bytes = [];
+        for (let i = 0; i < strlen; i++) {
+            let c = value.charCodeAt(i);
+            if ((c >= 0x0001) && (c <= 0x007F)) {
+                bytes[bytesCount++] = c;
+            } else if (c > 0x07FF) {
+                bytes[bytesCount++] = (0xE0 | ((c >> 12) & 0x0F));
+                bytes[bytesCount++] = (0x80 | ((c >> 6) & 0x3F));
+                bytes[bytesCount++] = (0x80 | (c & 0x3F));
+            } else {
+                bytes[bytesCount++] = (0xC0 | ((c >> 6) & 0x1F));
+                bytes[bytesCount++] = (0x80 | (c & 0x3F));
+            }
+        }
+        this.write(bytes);
+      	return this;
+    }
+
+    writeUTF(value) {
+        let strlen = value.length,
+      		  bytesCount = 0,
+          	bytes = [];
+        for (let i = 0; i < strlen; i++) {
+            let c = value.charCodeAt(i);
+            if ((c >= 0x0001) && (c <= 0x007F)) {
+                bytes[bytesCount++] = c;
+            } else if (c > 0x07FF) {
+                bytes[bytesCount++] = (0xE0 | ((c >> 12) & 0x0F));
+                bytes[bytesCount++] = (0x80 | ((c >> 6) & 0x3F));
+                bytes[bytesCount++] = (0x80 | (c & 0x3F));
+            } else {
+                bytes[bytesCount++] = (0xC0 | ((c >> 6) & 0x1F));
+                bytes[bytesCount++] = (0x80 | (c & 0x3F));
+            }
+        }
+        this.writeShort(bytes.length);
+        this.write(bytes);
+      	return this;
+    }
+
+    readUTF() {
+        let size = this.readUnsignedShort();
+        let bytearr = this.buf.slice(0, size);
+        let value = '';
+        for (let i = 0; i < size; ) {
+            let c = bytearr[i] & 0xff;
+            let x = c >> 4;
+            if (x == 12 || x == 13) {
+                i += 2;
+                value += String.fromCharCode(((c & 0x1F) << 6) | (bytearr[i - 1] & 0x3F));
+            } else if (x == 14) {
+                i += 3;
+                value += String.fromCharCode(((c & 0x0F) << 12) | ((bytearr[i - 2] & 0x3F) << 6) | ((bytearr[i - 1] & 0x3F)));
+            } else {
+                i++;
+                value += String.fromCharCode(c);
+            }
+        }
+        this.skipBytes(size)
+        return value;
+    }
+
+    readUTFBytes(size) {
+        let bytearr = this.buf.slice(0, size);
+        let value = '';
+        for (let i = 0; i < size; ) {
+            let c = bytearr[i] & 0xff;
+            let x = c >> 4;
+            if (x == 12 || x == 13) {
+                i += 2;
+                value += String.fromCharCode((c & 0x1F) << 6) | (bytearr[i - 1] & 0x3F);
+            } else if (x == 14) {
+                i += 3;
+                value += String.fromCharCode((c & 0x0F) << 12) | ((bytearr[i - 2] & 0x3F) << 6) | ((bytearr[i - 1] & 0x3F));
+            } else {
+                i++;
+                value += String.fromCharCode(c);
+            }
+        }
+        this.skipBytes(size)
+        return value;
+    }
+
+    readByte() {
+        if (this.buf.length >= 1){
+            let val = this.buf[0] & 0xff;
+            this.buf.shift();
+            return val;
+        } else {
+            throw new RangeError('Index out of bounds');
+        }
+    }
+
+    readBoolean() {
+        return this.readByte() > 0 ? true : false;
+    }
+
+    readUnsignedByte() {
+        let number = this.readByte();
+        let max = 256;
+        if (number > 127){
+            number = ~~(-1 * (max - number));
+        }
+  			return number;
+    }
+
+    readShort() {
+			   return (this.readByte() << 8) | this.readByte();
+    }
+
+    readUnsignedShort() {
+        let number = this.readShort();
+        let max = 65536;
+        if (number > 32767){
+            number = ~~(-1 * (max - number));
+        }
+  			return number;
+    }
+
+    readInt() {
+        return (this.readByte() << 24) | (this.readByte() << 16) | (this.readByte() << 8) | this.readByte();
+    }
+
+    writeUnsignedInt() {
+        let number = this.readShort();
+        let max = 4294967296;
+        if (number > 2147483647){
+            number = ~~(-1 * (max - number));
+        }
+    		return number;
+    }
+
+    readBytes(length) {
+        let bytes = this.buf.slice(0, length);
+        this.buf = this.buf.slice(length)
+        return bytes;
+    }
+
+    toBuffer() {
+			return new Buffer(this.buf);
+    }
+
+    skipBytes(index) {
+        this.buf = this.buf.slice(index);
+    }
+
+    toString() {
+        return new Buffer(this.buf).toString();
+    }
+
+    clear() {
+        this.buf = [];
+    }
+    get buffer() {
+        return this.buf;
+    }
+    clone(arg1, arg2) {
+        if(arg1) {
+            if(arg2) {
+                return new ByteArray(this.buf.slice(arg1, arg2));
+            } else {
+                return new ByteArray(this.buf.slice(arg1));
+            }
+        } else {
+            return new ByteArray(this.buf);
+        }
+    }
+
+    size() {
+        return this.buf.length;
+    }
+
+    avalible() {
+        return this.buf.length > 0;
+    }
+
+};
+module.exports = bytestream;
